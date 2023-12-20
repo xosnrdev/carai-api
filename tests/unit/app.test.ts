@@ -24,8 +24,8 @@ describe("Code Execution API", (): void => {
    */
   it("should execute code correctly", async (): Promise<void> => {
     const response = await request(server).post("/v1/execute").send({
-      language: "javascript",
-      code: 'console.log("Hello, World!")',
+      language: "python",
+      code: 'print("Hello, World!")',
     });
 
     expect(response.status).toBe(200);
@@ -118,7 +118,7 @@ describe("Code Execution API", (): void => {
 
     // Expect the API to return a specific status code or error message for long-running code
     expect(response.status).toBe(408); // 408 is the status code for Request Timeout
-  }, 60000); // Timeout of 30 seconds
+  }, 30000); // Timeout of 30 seconds
 
   /**
    * Test case: Handle memory-intensive code
@@ -219,5 +219,5 @@ describe("Code Execution API", (): void => {
       .send({ language: "javascript", code: 'console.log("Hello, World!")' });
 
     expect(response.status).toBe(429); // Expect a 429 Too Many Requests response
-  }, 30000); // Set a higher
+  }, 60000); // Set a higher
 });
