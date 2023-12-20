@@ -24,6 +24,3 @@ EXPOSE 3000
 # Create a non-root user and switch to it for security
 RUN useradd -m appuser
 USER appuser
-
-# Command to run the application
-CMD ["npm", "start"]
