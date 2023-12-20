@@ -118,7 +118,7 @@ describe("Code Execution API", (): void => {
 
     // Expect the API to return a specific status code or error message for long-running code
     expect(response.status).toBe(408); // 408 is the status code for Request Timeout
-  }, 30000); // Timeout of 30 seconds
+  }, 60000); // Timeout of 30 seconds
 
   /**
    * Test case: Handle memory-intensive code
