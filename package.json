@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon src/server.ts",
     "test": "jest --watch-all --verbose --detectOpenHandles --coverage",
-    "test:ci": "jest --verbose --coverage",
+    "test:ci": "jest --verbose --coverage --detectOpenHandles",
     "lint": "eslint . --ext .ts"
   },
   "keywords": [],

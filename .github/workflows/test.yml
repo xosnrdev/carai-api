@@ -1,4 +1,4 @@
-name: test
+name: Tests
 
 on:
   push:
@@ -52,17 +52,10 @@ jobs:
 
       - name: Start CARAI Docker Container
         run: |
-          docker run -d --name carai-api-v1 xosnrdev/carai:1.0
+          docker run -d --name carai-v1 xosnrdev/carai:1.0
 
       - name: Run Tests
         run: npm run test:ci
-
-      - name: Upload Test Coverage Report
-        uses: actions/upload-artifact@v2
-        if: success() || failure()
-        with:
-          name: coverage-report
-          path: coverage/icov-report/
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
