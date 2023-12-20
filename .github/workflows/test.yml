@@ -52,7 +52,7 @@ jobs:
 
       - name: Start CARAI Docker Container
         run: |
-          docker run -d --name carai-api-test xosnrdev/carai:1.0
+          docker run -d --name carai-api-v1 xosnrdev/carai:1.0
 
       - name: Run Tests
         run: npm run test:ci
