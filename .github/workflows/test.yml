@@ -43,9 +43,9 @@ jobs:
         # Installs Node.js dependencies using npm ci
         run: npm ci
 
-      - name: Pull Python 3.8 Alpine Docker Image
-        # Pulls the Python 3.8 Alpine Docker image for testing
-        run: docker pull python:3.8-alpine
+      - name: Pull Python 3.8 Docker Image
+        # Pulls the Python 3.8 Docker image for testing
+        run: docker pull python:3.8
 
       - name: Run Tests
         # Executes the test command
