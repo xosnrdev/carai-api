@@ -1,0 +1,70 @@
+name: test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - development
+      - master
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      docker:
+        image: docker:19.03.12
+        options: --privileged
+        ports:
+          - 2376:2376
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v2
+        with:
+          node-version: 18
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Linting
+        run: npm run lint
+
+      - name: Pull Node.js Docker Image
+        run: docker pull node:18
+
+      - name: Pull Python Docker Image
+        run: docker pull python:3.8
+
+      - name: Start CARAI Docker Container
+        run: |
+          docker run -d --name carai-api-test xosnrdev/carai:1.0
+
+      - name: Run Tests
+        run: npm run test:ci
+
+      - name: Upload Test Coverage Report
+        uses: actions/upload-artifact@v2
+        if: success() || failure()
+        with:
+          name: coverage-report
+          path: coverage/icov-report/
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
