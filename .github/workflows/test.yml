@@ -47,19 +47,9 @@ jobs:
         # Pulls the Python 3.8 Alpine Docker image for testing
         run: docker pull python:3.8-alpine
 
-      - name: Set Up Non-Root User
-        # Creates and switches to a non-root user for security
-        run: |
-          sudo groupadd -r appgroup
-          sudo useradd -r -g appgroup appuser
-          sudo chown -R appuser:appgroup /usr/src/app
-
       - name: Run Tests
         # Executes the test command
         run: npm run test:ci
-        env:
-          HOME: /usr/src/app
-          USER: appuser
 
       - name: Upload Coverage to Codecov
         # Uploads code coverage reports to Codecov
@@ -72,7 +62,7 @@ jobs:
       - name: Failure Notification
         # Sends a failure notification if any of the previous steps fail
         if: failure()
-        uses: actions/github-script@v5
+        uses: actions/github-script@v7
         with:
           script: |
             const issueTitle = `Workflow failed: ${process.env.GITHUB_WORKFLOW}, Run ID: ${process.env.GITHUB_RUN_ID}`;
