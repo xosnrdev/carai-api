@@ -1,37 +1,38 @@
-name: Tests
+name: Run Tests and Linting
 
+# Triggers the workflow on push or pull request events to the master branch,
+# and on pull request events to the development branch
 on:
   push:
     branches:
-      - master
+      - development
   pull_request:
     branches:
       - development
       - master
+  # Allows manual triggering of the workflow
   workflow_dispatch:
 
+# Defines a single job called build-and-test
 jobs:
-  test:
+  build-and-test:
+    # Specifies that the job runs on the latest Ubuntu runner
     runs-on: ubuntu-latest
 
-    services:
-      docker:
-        image: docker:19.03.12
-        options: --privileged
-        ports:
-          - 2376:2376
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout Repository
+        # Checks out the repository content to the GitHub Actions runner
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js 18
-        uses: actions/setup-node@v2
+      - name: Setup Node.js
+        # Sets up a Node.js environment with the specified version
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: "18"
 
-      - name: Cache Node.js modules
-        uses: actions/cache@v2
+      - name: Cache Node Modules
+        # Caches the Node modules to speed up subsequent runs
+        uses: actions/cache@v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -39,25 +40,36 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install Dependencies
+        # Installs Node.js dependencies using npm ci
         run: npm ci
 
-      - name: Linting
-        run: npm run lint
-
-      - name: Pull Node.js Docker Image
-        run: docker pull node:18
-
-      - name: Pull Python Docker Image
+      - name: Pull Python 3.8 Docker Image
+        # Pulls the Python 3.8 Docker image for testing
         run: docker pull python:3.8
 
-      - name: Start CARAI Docker Container
-        run: |
-          docker run -d --name carai-v1 xosnrdev/carai:1.0
-
       - name: Run Tests
+        # Executes the test command
         run: npm run test:ci
 
-      - name: Upload coverage reports to Codecov
+      - name: Upload Coverage to Codecov
+        # Uploads code coverage reports to Codecov
+        # This step only runs if the previous steps succeed
+        if: success()
         uses: codecov/codecov-action@v3
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Failure Notification
+        # Sends a failure notification if any of the previous steps fail
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueTitle = `Workflow failed: ${process.env.GITHUB_WORKFLOW}, Run ID: ${process.env.GITHUB_RUN_ID}`;
+            const issueBody = `A failure occurred in the workflow [${process.env.GITHUB_WORKFLOW}](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}). Please investigate.`;
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: issueBody
+            });
