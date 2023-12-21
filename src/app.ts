@@ -15,6 +15,10 @@ function startWorkerProcess(): Server {
   app.use(helmet());
   app.use(express.json());
 
+  app.get("/", (req, res) => {
+    res.send({ status: 200, message: "OK" });
+  });
+
   // Define routes
   app.post("/v1/execute", codeExecutionRoute);
 

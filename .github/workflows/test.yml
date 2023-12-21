@@ -43,9 +43,11 @@ jobs:
         # Installs Node.js dependencies using npm ci
         run: npm ci
 
-      - name: Pull Python 3.8 Docker Image
-        # Pulls the Python 3.8 Docker image for testing
-        run: docker pull python:3.8
+      - name: Setup Python
+        # Sets up a Python environment with the specified version
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: "3.8"
 
       - name: Run Tests
         # Executes the test command
