@@ -1,4 +1,4 @@
-name: CI/CD Pipeline Deployment
+name: Build CI/CD Pipeline Deployment
 
 on:
   push:
@@ -6,12 +6,12 @@ on:
       - master
 
 env:
-  AWS_REGION: "us-west-1" # Specify your AWS region
+  AWS_REGION: "us-east-1"
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
   IMAGE_TAG: "1.0"
-  ECS_SERVICE: "CaraiService" # Specify your ECS Service name
-  ECS_CLUSTER: "CaraiCluster" # Specify your ECS Cluster name
-  ECS_TASK_DEFINITION: "CaraiTaskDefinition" # Specify your ECS Task Definition name
+  ECS_SERVICE: "CaraiService"
+  ECS_CLUSTER: "CaraiCluster"
+  ECS_TASK_DEFINITION: "CaraiTaskDefinition"
 
 permissions:
   id-token: write
@@ -64,17 +64,3 @@ jobs:
           service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-
-      - name: Failure Notification
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const issueTitle = `Workflow failed: ${process.env.GITHUB_WORKFLOW}, Run ID: ${process.env.GITHUB_RUN_ID}`;
-            const issueBody = `A failure occurred in the workflow [${process.env.GITHUB_WORKFLOW}](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}). Please investigate.`;
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: issueTitle,
-              body: issueBody
-            });
