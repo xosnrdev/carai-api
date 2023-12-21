@@ -1,15 +1,14 @@
-name: Run Tests and Linting
+name: Run CI/CD Pipeline Tests
 
 # Triggers the workflow on push or pull request events to the master branch,
 # and on pull request events to the development branch
 on:
   push:
     branches:
-      - development
+      - master
   pull_request:
     branches:
       - development
-      - master
   # Allows manual triggering of the workflow
   workflow_dispatch:
 
@@ -44,8 +43,10 @@ jobs:
         run: npm ci
 
       - name: Setup Python
-        # Pulls up python 3.8 image from docker
-        run: docker pull python:3.8
+        # Sets up python 3.8 environment
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: "3.8"
 
       - name: Run Tests
         # Executes the test command
@@ -53,23 +54,6 @@ jobs:
 
       - name: Upload Coverage to Codecov
         # Uploads code coverage reports to Codecov
-        # This step only runs if the previous steps succeed
-        if: success()
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Failure Notification
-        # Sends a failure notification if any of the previous steps fail
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const issueTitle = `Workflow failed: ${process.env.GITHUB_WORKFLOW}, Run ID: ${process.env.GITHUB_RUN_ID}`;
-            const issueBody = `A failure occurred in the workflow [${process.env.GITHUB_WORKFLOW}](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}). Please investigate.`;
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: issueTitle,
-              body: issueBody
-            });
