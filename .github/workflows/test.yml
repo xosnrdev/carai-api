@@ -43,8 +43,8 @@ jobs:
         # Installs Node.js dependencies using npm ci
         run: npm ci
 
-      - name: Pull Python 3.8 Docker Image
-        # Pulls the Python 3.8 Docker image for testing
+      - name: Setup Python
+        # Pulls up python 3.8 image from docker
         run: docker pull python:3.8
 
       - name: Run Tests
