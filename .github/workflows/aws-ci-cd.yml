@@ -1,0 +1,165 @@
+name: CI/CD Pipeline to AWS ECR and ECS
+
+# Triggers the workflow on push to master branch and pull requests to development branch
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - development
+
+# Environment variables used across multiple jobs
+env:
+  AWS_REGION: us-east-1 # AWS region for ECR and ECS
+  ECR_REPOSITORY: carai-server # ECR repository name
+  ECS_SERVICE: carai-service # ECS service name
+  ECS_CLUSTER: carai-cluster # ECS cluster name
+  CONTAINER_NAME: carai-container # Container name in ECS task definition
+  DOCS_PATH: ./docs # Path to generated documentation
+  AWS_ROLE_ARN: arn:aws:iam::657214731516:role/GitHubActionsECSECRDeploymentRole # Replace with your role ARN
+  PYTHON_IMAGE: python:3.8 # Python image for pre-pulling
+  NODE_IMAGE: node:18 # Node image for pre-pulling
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # Pre-pull necessary Docker images to speed up later steps
+  pre-pull-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pre-pull Python image
+        run: docker pull ${{ env.PYTHON_IMAGE }}
+      - name: Pre-pull Node image
+        run: docker pull ${{ env.NODE_IMAGE }}
+
+  # Build and test the application
+  build-and-test:
+    needs: pre-pull-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Security Scan for the Dockerfile
+      - name: Dockerfile Security Scan
+        uses: anchore/scan-action@v3
+        with:
+          image: $ECR_REPOSITORY:latest
+          fail-build: true
+
+      - name: Build Docker image
+        run: docker build -t $ECR_REPOSITORY:latest .
+
+      - name: Checkstyle
+        run: npm run lint
+
+      - name: Run Tests
+        run: docker run --rm $ECR_REPOSITORY:latest npm test
+
+        if: success()
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Determine the next version and generate release notes
+  semantic-release:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACCESS_GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # Remove if not publishing to npm
+
+  # Generate and deploy documentation
+  generate-docs:
+    needs: semantic-release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install JSDoc
+        run: npm install -g jsdoc
+
+      - name: Generate Documentation
+        run: jsdoc -c jsdoc.json -d $DOCS_PATH
+
+      - name: Deploy Documentation
+        run: |
+          # Add your documentation deployment script here
+
+  # Push the built image to Amazon ECR
+  push-to-ecr:
+    needs: [build-and-test, semantic-release, generate-docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials from OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: GithubActions
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag and push image to Amazon ECR
+        run: |
+          docker tag $ECR_REPOSITORY:latest ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:${{ needs.semantic-release.outputs.new_version }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:${{ needs.semantic-release.outputs.new_version }}
+          docker push ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+
+  deploy-to-ecs:
+    needs: push-to-ecr
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Amazon ECS
+        run: aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment
+
+  notify:
+    if: always()
+    needs:
+      [
+        build-and-test,
+        semantic-release,
+        generate-docs,
+        push-to-ecr,
+        deploy-to-ecs,
+      ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Success
+        if: success()
+        run: |
+          echo "Deployment succeeded! Notifying team."
+          # Add actual notification script here for success
+
+      - name: Notify Failure
+        if: failure()
+        run: |
+          echo "Some steps failed! Notifying team."
+          # Add actual notification script here for failure

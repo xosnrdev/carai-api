@@ -1,52 +1,42 @@
-# Use the official Node.js 18
-FROM node:18
+# Use a specific version of node 18 Alpine for predictability
+FROM node:18-alpine AS builder-stage
 
-# Set the working directory
+# Set the working directory in the container
 WORKDIR /app
 
-# Install Python 3.8
-RUN apk add --no-cache python3 py3-pip
-
-
-# Install jq
-RUN apk add --no-cache jq
-
-
-# Copy package.json and package-lock.json (if available) to Docker container
+# Copy package.json and package-lock.json (if available)
 COPY package*.json ./
 
-# Install all dependencies including devDependencies
-RUN npm ci
+# Install only the packages defined in the package-lock.json (faster, more reliable builds)
+RUN npm ci development
 
-# Copy the rest of your app's source code from your host to your image filesystem.
+# Copy the rest of the source code
 COPY . .
 
-# Transpile the TypeScript code
+# Compile TypeScript to JavaScript
 RUN npx tsc
 
-# Remove devDependencies from package.json
-RUN jq 'del(.devDependencies)' package.json > package.tmp.json && mv package.tmp.json package.json
+# Start a new stage from node 18 Alpine to keep the image size small
+FROM node:18-alpine
 
-# Remove devDependencies
-RUN npm prune --production
+RUN addgroup app && adduser -S -G app app
 
-# Remove the 'src' and 'test' directories as they're not needed for production
-RUN rm -rf ./src ./tests ./tsconfig.json
+USER app
 
-# Create a group named "carai-server" and a user named "xosnrdev"
-RUN addgroup -S carai-server && adduser -S xosnrdev -G carai-server
+# Set the working directory in the container
+WORKDIR /app
 
-# Change ownership of the /app directory to xosnrdev:carai-server
-RUN chown -R xosnrdev:carai-server /app
+# Copy package.json and package-lock.json (if available)
+COPY package*.json ./
 
-# Switch to non-root user xosnrdev
-USER xosnrdev
+# Install only production dependencies
+RUN npm ci production
 
-# Set the environment to production
-ENV NODE_ENV=production
+# Copy compiled js from the builder-stage stage
+COPY --from=builder-stage /app/dist ./dist
 
-# Expose port 3000
+# Your app binds to port 3000 so you'll use the EXPOSE instruction to have it mapped by the docker daemon
 EXPOSE 3000
 
-# Command to run the application
+# Define command to run the app using the compiled code
 CMD ["npm", "start"]

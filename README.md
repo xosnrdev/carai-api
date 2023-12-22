@@ -13,7 +13,7 @@ This project provides an API for executing code in different programming languag
 
 ## API
 
-### POST /v1/execute
+### POST /api/v1/execute
 
 Executes the provided code.
 

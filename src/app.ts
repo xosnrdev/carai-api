@@ -13,14 +13,14 @@ function startWorkerProcess(): Server {
   // Apply middleware
   app.use(rateLimitMiddleware());
   app.use(helmet());
-  app.use(express.json());
+  app.use(express.json({ limit: "4mb" }));
 
   app.get("/", (req, res) => {
     res.send({ status: 200, message: "OK" });
   });
 
   // Define routes
-  app.post("/v1/execute", codeExecutionRoute);
+  app.post("api/v1/execute", codeExecutionRoute);
 
   // Start the server
   const server = app.listen(3000, () => {
