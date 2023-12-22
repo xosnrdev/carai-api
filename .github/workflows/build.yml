@@ -1,0 +1,66 @@
+name: Build CI/CD Pipeline Deployment
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  AWS_REGION: "us-east-1"
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+  IMAGE_TAG: "1.0"
+  ECS_SERVICE: "CaraiService"
+  ECS_CLUSTER: "CaraiCluster"
+  ECS_TASK_DEFINITION: "CaraiTaskDefinition"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::657214731516:role/GitHubCI_CD_Role
+          role-session-name: GitHubActions
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | 
+          docker login --username AWS --password-stdin ${{ env.ECR_REPOSITORY }}
+
+      - name: Build the Docker image
+        run: docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
+
+      - name: Run tests
+        run: |
+          docker run --rm ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} npm test
+
+      - name: Tag and push image to Amazon ECR
+        if: success()
+        run: |
+          docker push ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        if: success()
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: carai-container
+          image: ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+      - name: Deploy Amazon ECS task definition
+        if: success()
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          task-definition: ${{ steps.task-def.outputs.task-definition }}

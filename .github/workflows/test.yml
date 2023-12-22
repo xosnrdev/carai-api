@@ -1,0 +1,59 @@
+name: Run CI/CD Pipeline Tests
+
+# Triggers the workflow on push or pull request events to the master branch,
+# and on pull request events to the development branch
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - development
+  # Allows manual triggering of the workflow
+  workflow_dispatch:
+
+# Defines a single job called build-and-test
+jobs:
+  build-and-test:
+    # Specifies that the job runs on the latest Ubuntu runner
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        # Checks out the repository content to the GitHub Actions runner
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        # Sets up a Node.js environment with the specified version
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Cache Node Modules
+        # Caches the Node modules to speed up subsequent runs
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies
+        # Installs Node.js dependencies using npm ci
+        run: npm ci
+
+      - name: Setup Python
+        # Sets up python 3.8 environment
+        uses: actions/setup-python@v5.0.0
+        with:
+          python-version: "3.8"
+
+      - name: Run Tests
+        # Executes the test command
+        run: npm run test:ci
+
+      - name: Upload Coverage to Codecov
+        # Uploads code coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
