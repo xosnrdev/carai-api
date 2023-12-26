@@ -71,25 +71,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Build Services using Docker Compose
-        run: docker-compose build
-
-      - name: Start Services
-        run: docker-compose up -d
-
       - name: Run Tests
         run: |
           docker-compose exec -T api yarn run test:ci
-
+          
       - name: Upload Coverage to Codecov
         if: success()
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Clean up
-        if: always()
-        run: docker-compose down
+          
+      - name: Build Services using Docker Compose
+        run: docker-compose build
 
   semantic-release:
     needs: build-and-test
