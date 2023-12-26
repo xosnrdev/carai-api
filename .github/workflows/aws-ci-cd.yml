@@ -129,7 +129,7 @@ jobs:
           role-session-name: GithubActions
           web-identity-token-file: ${{ steps.aws-credentials.outputs.token-file }}
           role-duration-seconds: 1200
-
+          
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
