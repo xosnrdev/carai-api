@@ -2,45 +2,58 @@ import Docker, { Container } from "dockerode";
 import { ClientError } from "../utils/error-handler";
 import isScriptInjectionAttempt from "../utils/security";
 
+const MAX_CODE_SIZE = 65536; // max size per code.
+
 /**
  * Executes the provided code in a Docker container based on the specified language.
+ * It ensures security and resource limitations to prevent abuse.
  *
- * @param {string} language - The programming language of the code.
- * @param {string} code - The source code to execute.
- * @returns {Promise<string>} - A promise that resolves to the output of the code execution.
- * @throws {ClientError} - Throws an error if the execution or Docker operations fail.
+ * @param {string} language - The programming language of the code (e.g., 'python', 'javascript').
+ * @param {string} code - The source code to execute as a string.
+ * @returns {Promise<string>} A promise that resolves to the output of the code execution.
+ * @throws {ClientError} Throws an error if the execution or Docker operations fail.
+ *                        This includes script injection attempts, payload too large, unsupported languages,
+ *                        and any errors from the Docker execution environment.
  */
 async function executeCode(language: string, code: string): Promise<string> {
-  const docker = new Docker();
+  if (isScriptInjectionAttempt(code)) {
+    throw new ClientError("Script injection attempt detected", 403);
+  }
+
+  if (Buffer.byteLength(code, "utf-8") > MAX_CODE_SIZE) {
+    throw new ClientError("Payload too large", 413);
+  }
+
+  const docker = new Docker({ socketPath: "/var/run/docker.sock" });
   let image: string;
   let cmd: string;
   let executeCommand: string;
-  const asyncWrapper = `(async () => { ${code} })()`;
 
-  // Define Docker image and command based on the language
+  // Docker image and command based on the language
   switch (language) {
     case "python":
-      image = "python:3.8";
+      image = "python3";
       cmd = "python";
       executeCommand = `echo "${code.replace(/(["$`\\])/g, "\\$1")}" | ${cmd}`;
       break;
     case "javascript":
-    case "typescript":
-      image = "node:18";
+    case "typescript": {
+      image = "node:18-alpine";
       cmd = "node";
+      const asyncWrapper: string = `(async () => { try { ${code} } catch (err) { console.error(err); } })()`;
       executeCommand = `echo "${asyncWrapper.replace(
         /(["$`\\])/g,
         "\\$1"
       )}" | ${cmd}`;
       break;
+    }
     default:
       throw new ClientError("Unsupported language", 400);
   }
 
-  if (isScriptInjectionAttempt(code)) {
-    throw new ClientError("Script injection attempt detected", 403);
-  }
   let container: Container | null = null;
+  let timeoutId: NodeJS.Timeout;
+
   try {
     container = await docker.createContainer({
       Image: image,
@@ -48,8 +61,14 @@ async function executeCode(language: string, code: string): Promise<string> {
       AttachStdout: true,
       AttachStderr: true,
       HostConfig: {
+        // Resource Limits
         Memory: 256 * 1024 * 1024, // Limit memory to 256MB
         CpuShares: 1024, // Limit CPU, equivalent to 1 core
+        PidsLimit: 50, // Limit the number of processes
+        ReadonlyRootfs: true, // Mount the container's root filesystem as read-only
+        // Security Options
+        CapDrop: ["ALL"], // Drop all capabilities
+        SecurityOpt: ["no-new-privileges"], // Disable privilege escalation
       },
     });
 
@@ -57,7 +76,7 @@ async function executeCode(language: string, code: string): Promise<string> {
 
     const executionTimeout = 10000; // 10 seconds
     const timeoutPromise = new Promise<string>((_, reject) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         reject(new ClientError("Execution timed out", 408));
       }, executionTimeout);
     });
@@ -81,6 +100,7 @@ async function executeCode(language: string, code: string): Promise<string> {
           );
 
           streamData.on("end", () => {
+            clearTimeout(timeoutId);
             if (errorData) {
               // Check for Out-of-Memory or other specific server-side errors
               if (
@@ -118,9 +138,10 @@ async function executeCode(language: string, code: string): Promise<string> {
   } finally {
     if (container) {
       try {
+        // Attempt to stop and remove the container safely.
         const containerInfo = await container.inspect();
         if (containerInfo.State.Running) {
-          await container.stop();
+          await container.stop({ t: 5 });
         }
         await container.remove();
       } catch (cleanupError) {
@@ -129,4 +150,5 @@ async function executeCode(language: string, code: string): Promise<string> {
     }
   }
 }
+
 export default executeCode;

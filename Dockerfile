@@ -1,42 +1,41 @@
-# Use a specific version of node 18 Alpine for predictability
+# Start with Node.js 18 Alpine as your base image for the build stage
 FROM node:18-alpine AS builder-stage
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if available)
-COPY package*.json ./
+# Copy package.json and yarn.lock (if available)
+COPY package.json yarn.lock ./
 
-# Install only the packages defined in the package-lock.json (faster, more reliable builds)
-RUN npm ci development
+# Install all dependencies including those needed for building
+RUN yarn
 
-# Copy the rest of the source code
+# Copy TypeScript files and other necessary files for the build
 COPY . .
 
 # Compile TypeScript to JavaScript
-RUN npx tsc
+RUN yarn run build
 
-# Start a new stage from node 18 Alpine to keep the image size small
+# Start a new stage from Node.js 18 Alpine for the final image
 FROM node:18-alpine
 
-RUN addgroup app && adduser -S -G app app
-
-USER app
+RUN apk update && \
+  apk add python3
 
 # Set the working directory in the container
 WORKDIR /app
 
 # Copy package.json and package-lock.json (if available)
-COPY package*.json ./
+COPY package.json yarn.lock ./
 
-# Install only production dependencies
-RUN npm ci production
+# Install only production dependencies for Node.js
+RUN yarn --frozen-lockfile --production
 
-# Copy compiled js from the builder-stage stage
-COPY --from=builder-stage /app/dist ./dist
+# Copy the compiled JavaScript files from the builder stage
+COPY --from=builder-stage /app/dist/src ./dist
 
 # Your app binds to port 3000 so you'll use the EXPOSE instruction to have it mapped by the docker daemon
 EXPOSE 3000
 
-# Define command to run the app using the compiled code
-CMD ["npm", "start"]
+# Define command to run your app
+CMD ["yarn", "start"]

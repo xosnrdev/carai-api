@@ -15,7 +15,6 @@ async function handleCodeExecution(req: Request, res: Response): Promise<void> {
     const output = await executeCode(language, code);
 
     res.status(200).json({
-      message: "Code execution succeeded",
       output,
     });
   } catch (error) {
