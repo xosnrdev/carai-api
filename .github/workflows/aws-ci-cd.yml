@@ -1,0 +1,152 @@
+name: CI/CD Pipeline to AWS ECR and ECS
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - development
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::657214731516:role/CI_CD_ECS_ECR_OIDC_Role
+  ECR_REPOSITORY: carai-api
+  ECS_SERVICE: carai-api-service
+  ECS_CLUSTER: api-cluster
+  CONTAINER_NAME: carai-api-container
+  PYTHON_IMAGE: python:3.8-alpine
+  NODE_IMAGE: node:18-alpine
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
+jobs:
+  pre-pull-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pre-pull Python image
+        run: docker pull ${{ env.PYTHON_IMAGE }}
+      - name: Pre-pull Node image
+        run: docker pull ${{ env.NODE_IMAGE }}
+
+  security-scan:
+    needs: pre-pull-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build image for scanning
+        run: docker build -t ${{ env.ECR_REPOSITORY }}:scan .
+
+      - name: Dockerfile Security Scan
+        uses: anchore/scan-action@v3
+        with:
+          image: ${{ env.ECR_REPOSITORY }}:scan
+          fail-build: true
+
+  build-and-test:
+    needs: security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Services using Docker Compose
+        run: docker-compose build
+
+      - name: Start Services
+        run: docker-compose up -d
+
+      - name: Run Tests
+        run: |
+          docker-compose exec api yarn run test:ci
+
+      - name: Upload Coverage to Codecov
+        if: success()
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Clean up
+        if: always()
+        run: docker-compose down
+
+  semantic-release:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/github
+
+  push-to-ecr:
+    needs: semantic-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: GithubActions
+          web-identity-token-file: ${{ steps.aws-credentials.outputs.token-file }}
+          role-duration-seconds: 1200
+          
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Tag Docker image using Docker Compose
+        run: |
+          docker-compose build
+          IMAGE_TAG=$(echo ${{ steps.semantic-release.outputs.new-release-version }} | sed 's/^v//')
+          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
+
+      - name: Push Image to Amazon ECR
+        run: |
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
+          docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+  deploy-to-ecs:
+    needs: push-to-ecr
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Amazon ECS
+        run: aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment
