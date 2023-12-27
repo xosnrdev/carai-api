@@ -30,7 +30,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies for Node.js
-RUN npm ci --omit-dev
+RUN npm install -g npm@latest && \
+  npm ci --omit-dev
 
 # Copy the compiled JavaScript files from the builder stage
 COPY --from=builder-stage /app/dist/src ./dist
