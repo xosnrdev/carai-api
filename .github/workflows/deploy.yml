@@ -66,8 +66,7 @@ jobs:
           GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
 
   push-to-ecr:
-    name: Push to Amazon ECR
-    needs: [semantic-release]
+    needs: semantic-release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -83,12 +82,15 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Tag Docker image
+      - name: Determine Image Tag
         run: |
           IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
-          FULL_IMAGE_NAME="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
-          echo "Full Image Name: $FULL_IMAGE_NAME"
-          docker tag ${{ env.ECR_REPOSITORY }}:latest $FULL_IMAGE_NAME
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Tag Docker image
+        run: |
+          echo "Full Image Name: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
+          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
 
       - name: Push Image to Amazon ECR
         run: |
