@@ -25,10 +25,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository
+        # Checks out the repository content to the GitHub Actions runner
+        uses: actions/checkout@v4
+
       - name: Build Docker image
         run: docker-compose build
         env:
-          NODE_ENV: ${{ secrets.NODE_ENV }}
+          NODE_ENV: ${{ env.NODE_ENV }}
 
   # Job to handle versioning and changelog generation.
   semantic-release:
