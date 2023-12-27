@@ -44,6 +44,8 @@ jobs:
       # Build the Docker image.
       - name: Build Docker Image
         run: docker-compose build
+        env:
+          NODE_ENV: ${{ env.NODE_ENV }}
 
       # List Docker images for debugging and verification.
       - name: List Docker Images for Debugging
@@ -56,7 +58,7 @@ jobs:
           node-version: "18"
 
       - name: Install Dependencies
-        run: yarn install
+        run: npm ci
 
       # Run Semantic Release to determine the new version and generate release notes.
       - name: Run Semantic Release

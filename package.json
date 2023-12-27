@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc && yarn run lint",
+    "build": "tsc && npm run lint",
     "test": "jest --watchAll --coverage --detectOpenHandles",
-    "test:ci": "yarn run lint && jest --coverage --detectOpenHandles",
+    "test:ci": "npm run lint && jest --coverage --detectOpenHandles",
     "lint": "eslint . --ext .ts"
   },
   "repository": {
@@ -25,11 +25,10 @@
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0",
-    "yarn": ">=1.22.19",
-    "npm": "please-use-yarn"
+    "npm": ">=10.0.0",
+    "yarn": "please-use-npm"
   },
   "devDependencies": {
-    "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^9.2.6",
     "@types/dockerode": "^3.3.23",

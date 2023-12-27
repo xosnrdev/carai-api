@@ -4,17 +4,17 @@ FROM node:18-alpine AS builder-stage
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and yarn.lock (if available)
-COPY package.json ./
+# Copy package.json and npm.lock (if available)
+COPY package*.json ./
 
 # Install all dependencies including those needed for building
-RUN yarn install
+RUN npm ci
 
 # Copy TypeScript files and other necessary files for the build
 COPY . .
 
 # Compile TypeScript to JavaScript
-RUN yarn run build
+RUN npm run build
 
 # Start a new stage from Node.js 18 Alpine for the final image
 FROM node:18-alpine
@@ -26,10 +26,10 @@ RUN apk update && \
 WORKDIR /app
 
 # Copy package.json and package-lock.json (if available)
-COPY package.json yarn.lock ./
+COPY package*.json ./
 
 # Install only production dependencies for Node.js
-RUN yarn --frozen-lockfile --production
+RUN npm ci --omit-dev
 
 # Copy the compiled JavaScript files from the builder stage
 COPY --from=builder-stage /app/dist/src ./dist
@@ -38,4 +38,4 @@ COPY --from=builder-stage /app/dist/src ./dist
 EXPOSE 3000
 
 # Define command to run your app
-CMD ["yarn", "start"]
+CMD ["npm", "start"]

@@ -35,8 +35,8 @@ jobs:
           node-version: "18"
 
       - name: Install Dependencies
-        # Installs Node.js dependencies using yarn ci
-        run: yarn install --frozen-lockfile
+        # Installs Node.js dependencies using npm ci
+        run: npm ci
 
       - name: Pull Python alpine Image
         # Pulls up python 3.8 image from docker
@@ -44,7 +44,7 @@ jobs:
 
       - name: Run Tests
         # Executes the test command
-        run: yarn run test:ci
+        run: npm run test:ci
         env:
           NODE_ENV: development
 
