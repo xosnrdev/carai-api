@@ -61,7 +61,7 @@ jobs:
       # Run Semantic Release to determine the new version and generate release notes.
       - name: Run Semantic Release
         id: semantic_release
-        uses: cycjimmy/semantic-release-action@v4
+        run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
 
@@ -99,7 +99,7 @@ jobs:
       - name: Register ECS Task Definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
-          task-definition: ../../aws-ecs-deploy-task-definition
+          task-definition: ./aws-ecs-deploy-task-definition.json
 
       # Update the ECS service with the new task definition, initiating a new deployment.
       - name: Update ECS Service
