@@ -20,6 +20,7 @@ env:
   ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
   AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
 permissions:
   id-token: write
@@ -44,16 +45,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: Setup Node.js for Semantic Release
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-
-      - name: Install dependencies (production only)
-        run: yarn install --frozen-lockfile --${{ env.NODE_ENV }}
 
       - name: Run Semantic Release
         uses: cycjimmy/semantic-release-action@v4
