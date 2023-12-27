@@ -23,14 +23,15 @@ env:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
+  issues: write
+  pull-requests: write
   packages: write
 
 jobs:
   build-and-deploy:
     name: Build, Tag, and Deploy
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
