@@ -20,8 +20,5 @@
   ],
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
-  "memory": "1024",
-  "volumes": [],
-  "placementConstraints": [],
-  "proxyConfiguration": null
+  "memory": "1024"
 }
