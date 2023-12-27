@@ -57,7 +57,7 @@ jobs:
           node-version: "18"
 
       - name: Run Semantic Release
-        uses: cycjimmy/semantic-release-action@v4
+        run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
 
@@ -78,10 +78,10 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Tag Docker image for ECR
+      - name: Tag Docker image
         run: |
           IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
-          docker tag carai-api:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
+          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
 
       - name: Push Image to Amazon ECR
         run: |
