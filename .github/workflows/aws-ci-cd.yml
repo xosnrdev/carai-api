@@ -57,7 +57,7 @@ jobs:
         run: yarn --frozen-lockfile
 
       - name: Run Tests
-        run: yarn test:ci
+        run: yarn run test:ci
         env:
           NODE_ENV: development
 
