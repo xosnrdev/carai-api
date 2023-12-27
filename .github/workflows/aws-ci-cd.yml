@@ -20,8 +20,6 @@ env:
   ECS_SERVICE: carai-api-service
   ECS_CLUSTER: api-cluster
   CONTAINER_NAME: carai-api-container
-  PYTHON_IMAGE: python:3-alpine
-  NODE_IMAGE: node:18-alpine
   PORT: ${{ secrets.PORT }}
   RATE_LIMIT_WINDOW_MS: ${{ secrets.RATE_LIMIT_WINDOW_MS }}
   RATE_LIMIT_MAX: ${{ secrets.RATE_LIMIT_MAX }}
@@ -63,8 +61,6 @@ jobs:
 
       - name: Run Tests
         run: yarn run test:ci
-        env:
-          NODE_ENV: development
 
       - name: Upload Coverage to Codecov
         if: success()
