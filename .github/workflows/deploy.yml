@@ -27,31 +27,21 @@ permissions:
   packages: write
 
 jobs:
-  build:
-    name: Build Docker Image
+  build-and-deploy:
+    name: Build, Tag, and Deploy
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Build Docker image
+      - name: Build Docker Image
         run: docker-compose build
         env:
           NODE_ENV: ${{ env.NODE_ENV }}
 
-  semantic-release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-    steps:
-      - name: List Docker images before tagging
+      - name: List Docker Images for Debugging
         run: docker images
-        
-      - name: Checkout code
-        uses: actions/checkout@v4
 
       - name: Setup Node.js for Semantic Release
         uses: actions/setup-node@v4
@@ -64,17 +54,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
 
-  push-to-ecr:
-    needs: semantic-release
-    runs-on: ubuntu-latest
-    steps:
-      - name: List Docker images before tagging
-        run: docker images
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
@@ -84,25 +64,17 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Determine Image Tag
+      - name: Determine and Tag Image
         run: |
           IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
-      - name: Tag Docker image
-        run: |
           echo "Full Image Name: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
           docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
       - name: Push Image to Amazon ECR
         run: |
           docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
           docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
 
-  deploy-to-ecs:
-    name: Deploy to Amazon ECS
-    needs: push-to-ecr
-    runs-on: ubuntu-latest
-    steps:
       - name: Deploy to Amazon ECS
         run: aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --force-new-deployment
