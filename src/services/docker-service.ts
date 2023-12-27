@@ -32,7 +32,7 @@ async function executeCode(language: string, code: string): Promise<string> {
   // Docker image and command based on the language
   switch (language) {
     case "python":
-      image = "python3";
+      image = "python:3-alpine";
       cmd = "python";
       executeCommand = `echo "${code.replace(/(["$`\\])/g, "\\$1")}" | ${cmd}`;
       break;

@@ -1,7 +1,6 @@
 import request from "supertest";
 import startWorkerProcess from "../../src/app"; // Import your express app
 import { Server } from "http";
-import "dotenv/config";
 
 /**
  * Advanced Test suite for Code Execution API
@@ -25,13 +24,12 @@ describe("Code Execution API", (): void => {
    */
   it("should execute code correctly", async (): Promise<void> => {
     const response = await request(server).post("/api/execute").send({
-      language: "javascript",
-      code: "console.log('hello world')",
+      language: "python",
+      code: 'print("Hello, World!")',
     });
 
     expect(response.status).toBe(200);
-
-    expect(response.body.output).toBe("hello world");
+    expect(response.body.output).toBe("Hello, World!");
   }, 10000); // Timeout of 10 seconds
 
   /**
@@ -105,7 +103,7 @@ describe("Code Execution API", (): void => {
 
     // Expect the API to return a specific status code or error message for large code inputs
     expect(response.status).toBe(413); // 413 is the status code for Payload Too Large
-  }, 30000);
+  }, 10000); // Timeout of 10 seconds
 
   /**
    * Test case: Handle long-running code
@@ -205,7 +203,7 @@ describe("Code Execution API", (): void => {
    * @returns {Promise<void>}
    */
   it("should enforce rate limiting", async (): Promise<void> => {
-    const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 100);
+    const RATE_LIMIT_MAX = 100;
 
     for (let i = 0; i < RATE_LIMIT_MAX; i++) {
       // Sending POST requests within the rate limit
