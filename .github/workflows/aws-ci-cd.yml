@@ -1,5 +1,6 @@
 name: CI/CD Pipeline to AWS ECR and ECS
 
+# Trigger the workflow on push requests to the master branch and pull requests to master and development branches.
 on:
   push:
     branches:
@@ -8,8 +9,10 @@ on:
     branches:
       - master
       - development
+  # Allows manual triggering of the workflow.
   workflow_dispatch:
 
+# Define global environment variables for the workflow.
 env:
   AWS_REGION: us-east-1
   AWS_ROLE_ARN: arn:aws:iam::657214731516:role/CI_CD_ECS_ECR_OIDC_Role
@@ -19,57 +22,44 @@ env:
   CONTAINER_NAME: carai-api-container
   PYTHON_IMAGE: python:3-alpine
   NODE_IMAGE: node:18-alpine
+  PORT: ${{ secrets.PORT }}
+  RATE_LIMIT_WINDOW_MS: ${{ secrets.RATE_LIMIT_WINDOW_MS }}
+  RATE_LIMIT_MAX: ${{ secrets.RATE_LIMIT_MAX }}
+  NODE_ENV: ${{ secrets.NODE_ENV }}
+  NODE_OPTIONS: ${{ secrets.NODE_OPTIONS }}
 
+# Set permissions for the workflow.
 permissions:
   id-token: write
   contents: read
   packages: write
 
 jobs:
-  pre-pull-images:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Pre-pull Python image
-        run: docker pull ${{ env.PYTHON_IMAGE }}
-      - name: Pre-pull Node image
-        run: docker pull ${{ env.NODE_IMAGE }}
-
+  # Job to build the application and run tests.
   build-and-test:
-    needs: pre-pull-images
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Cache Node Modules
+        uses: actions/cache@v3
         with:
-          node-version: "18"
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install Dependencies
+        run: yarn install --frozen-lockfile
 
-        run: yarn --frozen-lockfile
+      - name: Setup Python
+        run: docker pull ${{ env.PYTHON_IMAGE }}
 
       - name: Run Tests
         run: yarn run test:ci
-        env:
-          NODE_ENV: development
 
-      - name: Upload Coverage to Codecov
-        if: success()
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: true
-
-      - name: Build Docker image
-        run: docker-compose build
-        env:
-          NODE_ENV: ${{ env.NODE_ENV }}
-
+  # Job to handle versioning and changelog generation.
   semantic-release:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -84,8 +74,16 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Install dependencies
-        run: yarn --frozen-lockfile --production
+      - name: Cache Node Modules (for Semantic Release)
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies (production only)
+        run: yarn install --frozen-lockfile --production
 
       - name: Run Semantic Release
         uses: cycjimmy/semantic-release-action@v4
@@ -93,6 +91,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+  # Job to push the built Docker image to Amazon ECR.
   push-to-ecr:
     needs: semantic-release
     runs-on: ubuntu-latest
@@ -120,6 +119,7 @@ jobs:
           docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
           docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
 
+  # Job to deploy the new image to Amazon ECS.
   deploy-to-ecs:
     needs: push-to-ecr
     runs-on: ubuntu-latest
