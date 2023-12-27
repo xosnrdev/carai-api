@@ -52,7 +52,7 @@ jobs:
 
       - name: Pull Python3 Image
         # Pulls up python 3.8 image from docker
-        run: docker pull python:3
+        run: docker pull python:3-alpine
 
       - name: Run Tests
         # Executes the test command
