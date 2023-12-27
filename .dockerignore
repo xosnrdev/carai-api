@@ -7,6 +7,4 @@ Dockerfile
 node_modules/
 npm-debug.log
 docker-compose.yml
-jest.config.ts
 semantic-release.config.js
-tests
