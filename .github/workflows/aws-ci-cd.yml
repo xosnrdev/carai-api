@@ -50,10 +50,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
+          cache: "yarn"
+
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('yarn.lock') }}
+          restore-keys: ${{ runner.os }}-node-
 
       - name: Install Dependencies
-
-        run: yarn
+        run: yarn --frozen-lockfile
 
       - name: Run Tests
         run: yarn run test:ci
@@ -73,7 +80,7 @@ jobs:
       - name: Build Docker image
         run: docker-compose build
         env:
-          NODE_ENV: ${{ env.NODE_ENV }}
+          NODE_ENV: production
 
   semantic-release:
     needs: build-and-test
@@ -89,8 +96,15 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Install dependencies
-        run: yarn --frozen-lockfile --production
+      - name: Cache node modules (for Semantic Release)
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('yarn.lock') }}
+          restore-keys: ${{ runner.os }}-node-
+
+      - name: Install dependencies (production only)
+        run: yarn install --frozen-lockfile --production
 
       - name: Run Semantic Release
         uses: cycjimmy/semantic-release-action@v4
