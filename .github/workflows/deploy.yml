@@ -68,14 +68,18 @@ jobs:
       - name: Determine and Tag Image
         run: |
           IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
-          echo "Full Image Name: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
-          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
+          FULL_IMAGE_NAME="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}"
+          echo "Full Image Name with Version Tag: $FULL_IMAGE_NAME:$IMAGE_TAG"
+          echo "Full Image Name with Latest Tag: $FULL_IMAGE_NAME:latest"
+          docker tag ${{ env.ECR_REPOSITORY }}:latest $FULL_IMAGE_NAME:$IMAGE_TAG
+          docker tag ${{ env.ECR_REPOSITORY }}:latest $FULL_IMAGE_NAME:latest
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
       - name: Push Image to Amazon ECR
         run: |
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+          FULL_IMAGE_NAME="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}"
+          docker push $FULL_IMAGE_NAME:$IMAGE_TAG
+          docker push $FULL_IMAGE_NAME:latest
 
       - name: Deploy to Amazon ECS
         run: aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --force-new-deployment
