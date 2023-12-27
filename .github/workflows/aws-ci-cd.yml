@@ -50,7 +50,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          cache: "yarn"
 
       - name: Cache node modules
         uses: actions/cache@v3
@@ -60,7 +59,7 @@ jobs:
           restore-keys: ${{ runner.os }}-node-
 
       - name: Install Dependencies
-        run: yarn
+        run: yarn --frozen-lockfile
 
       - name: Run Tests
         run: yarn test:ci
