@@ -57,10 +57,12 @@ jobs:
         run: yarn install
 
       - name: Setup Python
-        run: docker pull python:3-alpine
+        run: docker pull python:3.11
 
       - name: Run Tests
         run: yarn run test:ci
+        env:
+          NODE_ENV: development
 
       - name: Upload Coverage to Codecov
         if: success()
