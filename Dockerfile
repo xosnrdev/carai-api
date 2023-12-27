@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies including those needed for building
-RUN npm ci
+RUN npm install -g npm@latest && \
+  npm ci
 
 # Copy TypeScript files and other necessary files for the build
 COPY . .
