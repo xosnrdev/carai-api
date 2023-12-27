@@ -37,10 +37,9 @@ jobs:
           node-version: "18"
 
       - name: Cache Node Modules
-        # Caches the Node modules to speed up subsequent runs
         uses: actions/cache@v3
         with:
-          path: ~/.yarn
+          path: node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-node-
