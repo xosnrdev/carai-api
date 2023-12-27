@@ -45,7 +45,7 @@ jobs:
 
       - name: Setup Python
         # Pulls up python 3.8 image from docker
-        run: docker pull python:3.8
+        run: docker pull python:3
 
       - name: Run Tests
         # Executes the test command
