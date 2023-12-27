@@ -109,7 +109,13 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           role-session-name: GithubActions
+<<<<<<< HEAD
 
+=======
+          web-identity-token-file: ${{ steps.aws-credentials.outputs.token-file }}
+          role-duration-seconds: 1200
+          
+>>>>>>> fb3db152f953898816ef5365b9dca04f16223e2f
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
