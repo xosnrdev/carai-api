@@ -1,0 +1,27 @@
+{
+  "family": "carai-api-task",
+  "taskRoleArn": "arn:aws:iam::657214731516:role/CI_CD_ECS_ECR_OIDC_Role",
+  "executionRoleArn": "arn:aws:iam::657214731516:role/ECSTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "containerDefinitions": [
+    {
+      "name": "carai-api-container",
+      "image": "657214731516.dkr.ecr.us-east-1.amazonaws.com/carai-api:latest",
+      "cpu": 256,
+      "memory": 1024,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000
+        }
+      ],
+      "essential": true
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "1024",
+  "volumes": [],
+  "placementConstraints": [],
+  "proxyConfiguration": null
+}

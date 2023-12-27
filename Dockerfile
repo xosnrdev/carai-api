@@ -5,10 +5,10 @@ FROM node:18-alpine AS builder-stage
 WORKDIR /app
 
 # Copy package.json and yarn.lock (if available)
-COPY package.json yarn.lock ./
+COPY package.json ./
 
 # Install all dependencies including those needed for building
-RUN yarn install --frozen-lockfile
+RUN yarn install
 
 # Copy TypeScript files and other necessary files for the build
 COPY . .
