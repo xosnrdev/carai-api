@@ -40,6 +40,10 @@ jobs:
           NODE_ENV: ${{ env.NODE_ENV }}
 
   semantic-release:
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     needs: build
     runs-on: ubuntu-latest
     steps:
