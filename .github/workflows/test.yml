@@ -43,7 +43,7 @@ jobs:
         # Installs Node.js dependencies using yarn ci
         run: yarn
 
-      - name: Setup Python
+      - name: Pull Python Image from Docker
         # Pulls up python 3.8 image from docker
         run: docker pull python:3
 
