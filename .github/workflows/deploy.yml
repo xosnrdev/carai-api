@@ -60,6 +60,9 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Production Build
+        run: npm run release
+
       # Run Semantic Release to determine the new version and generate release notes.
       - name: Run Semantic Release
         id: semantic_release
