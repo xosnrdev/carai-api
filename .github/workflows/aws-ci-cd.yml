@@ -41,17 +41,17 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        
+
       - name: Cache Node Modules
         uses: actions/cache@v3
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Setup Node
         run: docker pull ${{ env.NODE_IMAGE }}
@@ -61,7 +61,9 @@ jobs:
 
       - name: Run Tests
         run: yarn run test:ci
-        
+        env:
+          NODE_ENV: development
+
       - name: Upload Coverage to Codecov
         if: success()
         uses: codecov/codecov-action@v3
@@ -71,6 +73,11 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: true
+
+      - name: Build Docker image
+        run: docker-compose build
+        env:
+          NODE_ENV: ${{ env.NODE_ENV }}
 
   # Job to handle versioning and changelog generation.
   semantic-release:
@@ -86,7 +93,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          
+
       - name: Cache node modules (for Semantic Release)
         uses: actions/cache@v3
         with:
