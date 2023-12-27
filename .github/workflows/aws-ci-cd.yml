@@ -6,6 +6,7 @@ on:
       - master
   pull_request:
     branches:
+      - master
       - development
 
 env:
@@ -48,10 +49,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          cache: "yarn"
 
       - name: Install Dependencies
-      
+
         run: yarn --frozen-lockfile
 
       - name: Run Tests
@@ -110,7 +110,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           role-session-name: GithubActions
-          
+
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
