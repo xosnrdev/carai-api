@@ -1,7 +1,5 @@
 name: CI - Build and Test Suite
 
-# Triggers the workflow on push or pull request events to the master branch,
-# and on pull request events to the development branch
 on:
   push:
     branches:
@@ -36,17 +34,9 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Cache Node Modules
-        uses: actions/cache@v3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install Dependencies
         # Installs Node.js dependencies using yarn ci
-        run: yarn
+        run: yarn install --frozen-lockfile
 
       - name: Pull Python alpine Image
         # Pulls up python 3.8 image from docker

@@ -20,7 +20,7 @@ RUN yarn run build
 FROM node:18-alpine
 
 RUN apk update && \
-  apk add python3
+  apk add --no-cache python3 g++ make
 
 # Set the working directory in the container
 WORKDIR /app

@@ -19,6 +19,7 @@ env:
   ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
   ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
   AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 permissions:
   id-token: write
@@ -51,21 +52,13 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Cache Node Modules
-        uses: actions/cache@v3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: ${{ runner.os }}-node-
-
       - name: Install dependencies (production only)
         run: yarn install --frozen-lockfile --${{ env.NODE_ENV }}
 
       - name: Run Semantic Release
         uses: cycjimmy/semantic-release-action@v4
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
 
   push-to-ecr:
     needs: semantic-release
