@@ -60,10 +60,10 @@ jobs:
           restore-keys: ${{ runner.os }}-node-
 
       - name: Install Dependencies
-        run: yarn --frozen-lockfile
+        run: yarn
 
       - name: Run Tests
-        run: yarn run test:ci
+        run: yarn test:ci
         env:
           NODE_ENV: development
 
