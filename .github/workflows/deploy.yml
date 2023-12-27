@@ -1,118 +1,69 @@
 name: AWS ECR and ECS Deployment Pipeline
 
-# Trigger the workflow on completion of the Build and Test Suite or manual dispatch.
 on:
   workflow_run:
     workflows: ["CI - Build and Test Suite"]
     types: [completed]
   workflow_dispatch:
 
-# Global environment variables.
 env:
-  PORT: ${{ secrets.PORT }}
-  RATE_LIMIT_WINDOW_MS: ${{ secrets.RATE_LIMIT_WINDOW_MS }}
-  RATE_LIMIT_MAX: ${{ secrets.RATE_LIMIT_MAX }}
-  NODE_ENV: ${{ secrets.NODE_ENV }}
-  NODE_OPTIONS: ${{ secrets.NODE_OPTIONS }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
   ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
   ECS_SERVICE: ${{ secrets.ECS_SERVICE }}
   AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.ACCESS_GITHUB_TOKEN }}
 
-# Permissions required by the GitHub Actions runner.
 permissions:
-  id-token: write
   contents: write
-  issues: write
-  pull-requests: write
-  packages: write
+  id-token: write
 
 jobs:
-  # Single job to build, tag, and deploy the application.
   build-and-deploy:
     name: Build, Tag, and Deploy
     runs-on: ubuntu-latest
+
     steps:
-      # Checkout the repository content.
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Build the Docker image.
       - name: Build Docker Image
         run: docker-compose build
-        env:
-          NODE_ENV: ${{ env.NODE_ENV }}
 
-      # List Docker images for debugging and verification.
-      - name: List Docker Images for Debugging
-        run: docker images
-
-      # Setup Node.js for Semantic Release.
-      - name: Setup Node.js for Semantic Release
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Production Build
-        run: npm run release
-
-      # Run Semantic Release to determine the new version and generate release notes.
-      - name: Run Semantic Release
-        id: semantic_release
-        run: npx semantic-release
-        env:
-          GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
-
-      # Configure AWS Credentials for accessing AWS services.
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          role-session-name: GithubActions
 
-      # Authenticate with Amazon ECR.
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Determine the image tag based on the commit SHA and tag the image accordingly.
-      - name: Determine and Tag Image
-        run: |
-          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
-          FULL_IMAGE_NAME="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}"
-          echo "Full Image Name with Version Tag: $FULL_IMAGE_NAME:$IMAGE_TAG"
-          echo "Full Image Name with Latest Tag: $FULL_IMAGE_NAME:latest"
-          docker tag ${{ env.ECR_REPOSITORY }}:latest $FULL_IMAGE_NAME:$IMAGE_TAG
-          docker tag ${{ env.ECR_REPOSITORY }}:latest $FULL_IMAGE_NAME:latest
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
-      # Push the tagged images to Amazon ECR.
-      - name: Push Image to Amazon ECR
-        run: |
-          FULL_IMAGE_NAME="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}"
-          docker push $FULL_IMAGE_NAME:$IMAGE_TAG
-          docker push $FULL_IMAGE_NAME:latest
-
-      # Register the new ECS task definition with the updated image.
-      - name: Register ECS Task Definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      - name: Generate and Publish Changelog
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v4
         with:
-          task-definition: ./aws-ecs-deploy-task-definition.json
+          github-token: ${{ env.GITHUB_TOKEN }}
 
-      # Update the ECS service with the new task definition, initiating a new deployment.
-      - name: Update ECS Service
-        run: aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --task-definition ${{ steps.semantic_release.outputs.new-task-definition-arn }}
+      - name: Create and Publish GitHub Release
+        if: steps.changelog.outputs.version != ''
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.ACCESS_GITHUB_TOKEN }}
+          tag: ${{ steps.changelog.outputs.version }}
+          name: Release ${{ steps.changelog.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
 
-      # Optionally, wait for the deployment to complete and the service to stabilize.
-      - name: Wait for ECS Service Deployment
-        run: aws ecs wait services-stable --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.ECS_SERVICE }}
+      - name: Tag and Push Docker Image to ECR
+        if: steps.changelog.outputs.version != ''
+        run: |
+          IMAGE_TAG=${{ steps.changelog.outputs.version }}
+          FULL_IMAGE_NAME="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}"
+          docker tag ${{ env.ECR_REPOSITORY }}:latest $FULL_IMAGE_NAME:$IMAGE_TAG
+          docker push $FULL_IMAGE_NAME:$IMAGE_TAG
+
+      - name: Deploy Updated Image to Amazon ECS
+        if: steps.changelog.outputs.version != ''
+        run: |
+          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --force-new-deployment

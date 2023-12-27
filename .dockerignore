@@ -9,3 +9,4 @@ npm-debug.log
 docker-compose.yml
 jest.config.ts
 release.config.js
+aws-ecs-deploy-task-definition.json
