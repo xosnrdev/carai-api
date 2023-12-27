@@ -1,18 +1,14 @@
-name: CI/CD Pipeline to AWS ECR and ECS
+name: AWS ECR and ECS Deployment Pipeline
 
-# Trigger the workflow on push requests to the master branch and pull requests to master and development branches.
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-      - development
+  workflow_run:
+    workflows: ["CI - Build and Test Suite"]
+    types:
+      - completed
   # Allows manual triggering of the workflow.
   workflow_dispatch:
 
-# Define global environment variables for the workflow.
+# global environment variables for the workflow.
 env:
   AWS_REGION: us-east-1
   AWS_ROLE_ARN: arn:aws:iam::657214731516:role/CI_CD_ECS_ECR_OIDC_Role
@@ -33,47 +29,9 @@ permissions:
   packages: write
 
 jobs:
-  # Job to build the application and run tests.
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Cache Node Modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install Dependencies
-        run: yarn install
-
-      - name: Setup Python
-        run: docker pull python:3.11
-
-      - name: Run Tests
-        run: yarn run test:ci
-        env:
-          NODE_ENV: development
-
-      - name: Upload Coverage to Codecov
-        if: success()
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: true
-
       - name: Build Docker image
         run: docker-compose build
         env:
@@ -81,7 +39,7 @@ jobs:
 
   # Job to handle versioning and changelog generation.
   semantic-release:
-    needs: build-and-test
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

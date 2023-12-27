@@ -1,0 +1,59 @@
+name: CI - Build and Test Suite
+
+# Triggers the workflow on push or pull request events to the master branch,
+# and on pull request events to the development branch
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+      - development
+  # Allows manual triggering of the workflow
+  workflow_dispatch:
+
+# Defines a single job called build-and-test
+jobs:
+  build-and-test:
+    # Specifies that the job runs on the latest Ubuntu runner
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        # Checks out the repository content to the GitHub Actions runner
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        # Sets up a Node.js environment with the specified version
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Cache Node Modules
+        # Caches the Node modules to speed up subsequent runs
+        uses: actions/cache@v3
+        with:
+          path: ~/.yarn
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Dependencies
+        # Installs Node.js dependencies using yarn ci
+        run: yarn
+
+      - name: Setup Python
+        # Pulls up python 3.8 image from docker
+        run: docker pull python:3.8
+
+      - name: Run Tests
+        # Executes the test command
+        run: yarn run test:ci
+
+      - name: Upload Coverage to Codecov
+        # Uploads code coverage reports to Codecov
+        if: success()
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

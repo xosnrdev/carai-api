@@ -8,7 +8,7 @@
     "start": "node dist/server.js",
     "build": "tsc && yarn run lint",
     "test": "jest --watchAll --coverage --detectOpenHandles",
-    "test:ci": "jest --coverage --detectOpenHandles",
+    "test:ci": "yarn run lint && jest --coverage --detectOpenHandles",
     "lint": "eslint . --ext .ts"
   },
   "repository": {
