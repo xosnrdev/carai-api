@@ -3,8 +3,7 @@ name: AWS ECR and ECS Deployment Pipeline
 on:
   workflow_run:
     workflows: ["CI - Build and Test Suite"]
-    types:
-      - completed
+    types: [completed]
   workflow_dispatch:
 
 env:
@@ -29,6 +28,7 @@ permissions:
 
 jobs:
   build:
+    name: Build Docker Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -36,17 +36,20 @@ jobs:
 
       - name: Build Docker image
         run: docker-compose build
+        env:
+          NODE_ENV: ${{ env.NODE_ENV }}
 
       - name: List Docker images
         run: docker images
 
   semantic-release:
+    name: Semantic Release and Tagging
+    needs: build
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       issues: write
       pull-requests: write
-    needs: build
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,11 +60,13 @@ jobs:
           node-version: "18"
 
       - name: Run Semantic Release
-        run: npx semantic-release
+        id: semantic_release
+        uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
 
   push-to-ecr:
+    name: Push to Amazon ECR
     needs: [semantic-release]
     runs-on: ubuntu-latest
     steps:
@@ -80,15 +85,20 @@ jobs:
 
       - name: Tag Docker image
         run: |
-          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
-          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
+          NEW_TAG=${{ steps.semantic_release.outputs.new_release_version }}
+          if [ -z "$NEW_TAG" ]; then
+            echo "No new version tag found. Skipping push to ECR."
+            exit 0
+          fi
+          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$NEW_TAG
 
       - name: Push Image to Amazon ECR
         run: |
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$NEW_TAG
           docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
 
   deploy-to-ecs:
+    name: Deploy to Amazon ECS
     needs: push-to-ecr
     runs-on: ubuntu-latest
     steps:
