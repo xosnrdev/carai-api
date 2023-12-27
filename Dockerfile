@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json yarn.lock ./
 
 # Install all dependencies including those needed for building
-RUN yarn
+RUN yarn install --frozen-lockfile
 
 # Copy TypeScript files and other necessary files for the build
 COPY . .
@@ -20,7 +20,7 @@ RUN yarn run build
 FROM node:18-alpine
 
 RUN apk update && \
-  apk add --no-cache python3 g++ make
+  apk add python3
 
 # Set the working directory in the container
 WORKDIR /app
