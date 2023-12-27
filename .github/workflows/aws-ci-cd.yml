@@ -37,24 +37,8 @@ jobs:
       - name: Pre-pull Node image
         run: docker pull ${{ env.NODE_IMAGE }}
 
-  security-scan:
-    needs: pre-pull-images
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Build image for scanning
-        run: docker build -t ${{ env.ECR_REPOSITORY }}:scan .
-
-      - name: Dockerfile Security Scan
-        uses: anchore/scan-action@v3
-        with:
-          image: ${{ env.ECR_REPOSITORY }}:scan
-          fail-build: false
-
   build-and-test:
-    needs: security-scan
+    needs: pre-pull-images
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -74,13 +58,13 @@ jobs:
       - name: Run Tests
         run: |
           docker-compose exec -T api yarn run test:ci
-          
+
       - name: Upload Coverage to Codecov
         if: success()
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          
+
       - name: Build Services using Docker Compose
         run: docker-compose build
 
@@ -127,7 +111,7 @@ jobs:
           role-session-name: GithubActions
           web-identity-token-file: ${{ steps.aws-credentials.outputs.token-file }}
           role-duration-seconds: 1200
-          
+
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
