@@ -51,7 +51,8 @@ jobs:
           cache: "yarn"
 
       - name: Install Dependencies
-        run: yarn
+      
+        run: yarn --frozen-lockfile
 
       - name: Run Tests
         run: yarn run test:ci
@@ -88,7 +89,7 @@ jobs:
           node-version: "18"
 
       - name: Install dependencies
-        run: yarn
+        run: yarn --frozen-lockfile --production
 
       - name: Run Semantic Release
         uses: cycjimmy/semantic-release-action@v4
@@ -109,7 +110,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           role-session-name: GithubActions
-
+          
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
