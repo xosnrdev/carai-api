@@ -57,7 +57,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          docker-compose exec -T api yarn run test:ci
+          yarn run test:ci
 
       - name: Upload Coverage to Codecov
         if: success()
