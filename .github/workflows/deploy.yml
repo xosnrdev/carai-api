@@ -61,6 +61,10 @@ jobs:
           GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
 
   push-to-ecr:
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
     needs: semantic-release
     runs-on: ubuntu-latest
     steps:
@@ -88,6 +92,9 @@ jobs:
           docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
 
   deploy-to-ecs:
+    permissions:
+      contents: read
+      id-token: write
     needs: push-to-ecr
     runs-on: ubuntu-latest
     steps:
