@@ -17,7 +17,6 @@ env:
   PORT: ${{ secrets.PORT }}
   RATE_LIMIT_WINDOW_MS: ${{ secrets.RATE_LIMIT_WINDOW_MS }}
   RATE_LIMIT_MAX: ${{ secrets.RATE_LIMIT_MAX }}
-  NODE_ENV: ${{ secrets.NODE_ENV }}
   NODE_OPTIONS: ${{ secrets.NODE_OPTIONS }}
 
 # Defines a single job called build-and-test
@@ -50,13 +49,15 @@ jobs:
         # Installs Node.js dependencies using yarn ci
         run: yarn
 
-      - name: Pull Python3 Image
+      - name: Pull Python alpine Image
         # Pulls up python 3.8 image from docker
-        run: docker pull python:3
+        run: docker pull python:3-alpine
 
       - name: Run Tests
         # Executes the test command
         run: yarn run test:ci
+        env:
+          NODE_ENV: development
 
       - name: Upload Coverage to Codecov
         # Uploads code coverage reports to Codecov
