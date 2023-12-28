@@ -62,7 +62,7 @@ jobs:
         with:
           github-token: ${{ env.GITHUB_TOKEN }}
 
-      # Create or update CHANGELOG.md
+        # Create or update CHANGELOG.md
       - name: Create or Update CHANGELOG.md
         if: steps.changelog.outputs.version != ''
         run: |
@@ -87,6 +87,7 @@ jobs:
           tag: ${{ steps.changelog.outputs.version }}
           name: Release ${{ steps.changelog.outputs.version }}
           body: ${{ steps.changelog.outputs.changelog }}
+          skipIfReleaseExists: true
 
       - name: Tag and Push Docker Image to ECR
         if: steps.changelog.outputs.version != ''
