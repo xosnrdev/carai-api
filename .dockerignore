@@ -2,7 +2,7 @@
 .gitignore
 *.md
 coverage
-.github/workflow
+.github/
 Dockerfile
 node_modules/
 npm-debug.log

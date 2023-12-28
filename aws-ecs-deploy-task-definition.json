@@ -1,5 +1,5 @@
 {
-  "family": "carai-api-task",
+  "family": "carai-api-task-definition",
   "taskRoleArn": "arn:aws:iam::657214731516:role/CI_CD_ECS_ECR_OIDC_Role",
   "executionRoleArn": "arn:aws:iam::657214731516:role/ECSTaskExecutionRole",
   "networkMode": "awsvpc",
@@ -11,14 +11,67 @@
       "memory": 1024,
       "portMappings": [
         {
-          "containerPort": 3000,
-          "hostPort": 3000
+          "containerPort": 3000
         }
       ],
-      "essential": true
+      "essential": true,
+      "environment": [
+        {
+          "name": "RATE_LIMIT_WINDOW_MS",
+          "value": "900000"
+        },
+        {
+          "name": "RATE_LIMIT_MAX",
+          "value": "100"
+        },
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "PORT",
+          "value": "3000"
+        },
+        {
+          "name": "NODE_OPTIONS",
+          "value": "--max-old-space-size=4096"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/carai-api",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:3000/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 5,
+        "startPeriod": 15
+      }
     }
   ],
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
-  "memory": "1024"
+  "memory": "1024",
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": [
+        "subnet-0eb48bbb0264365d8",
+        "subnet-049a391275542d3f3",
+        "subnet-081202f9fa7268bc0",
+        "subnet-0d06198347edf6ca3",
+        "subnet-025c5a65666db3b7a",
+        "subnet-0962d1caa088afa85"
+      ],
+      "securityGroups": ["sg-0efdd59881959c3d1"],
+      "assignPublicIp": "ENABLED"
+    }
+  }
 }
