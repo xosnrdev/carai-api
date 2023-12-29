@@ -30,6 +30,7 @@ permissions:
 jobs:
   build-and-deploy:
     name: Build, Tag, and Deploy
+    if: ${{ github.event.workflow_run.conclusion != 'cancelled' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -62,7 +63,7 @@ jobs:
         with:
           github-token: ${{ env.GITHUB_TOKEN }}
 
-        # Create or update CHANGELOG.md
+      # Create or update CHANGELOG.md
       - name: Create or Update CHANGELOG.md
         if: steps.changelog.outputs.version != ''
         run: |
@@ -89,22 +90,21 @@ jobs:
           body: ${{ steps.changelog.outputs.changelog }}
           skipIfReleaseExists: true
 
+      - name: Define IMAGE_TAG
+        if: steps.changelog.outputs.version != ''
+        run: echo "IMAGE_TAG=${{ steps.changelog.outputs.version }}" >> $GITHUB_ENV
+
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Tag and Push Docker Image to ECR
         if: steps.changelog.outputs.version != ''
         run: |
-          IMAGE_TAG=${{ steps.changelog.outputs.version }}
+          export IMAGE_TAG=${{ env.IMAGE_TAG }}
           export AWS_ACCOUNT_ID=${{ env.AWS_ACCOUNT_ID }}
           export AWS_REGION=${{ env.AWS_REGION }}
           export ECR_REPOSITORY=${{ env.ECR_REPOSITORY }}
-          export IMAGE_TAG
 
-          # Update the image tag in the Docker Compose file
-          sed -i "s|${IMAGE_TAG}|$IMAGE_TAG|g" docker-compose.prod.yml
-
-          # Push the image to Amazon ECR using Docker Compose
           docker compose -f docker-compose.prod.yml push api
 
       - name: Set up Docker Context for ECS
@@ -120,6 +120,11 @@ jobs:
         if: steps.changelog.outputs.version != ''
         run: |
           docker compose -f docker-compose.prod.yml up
+
+      - name: Verify Deployment Health
+        if: steps.changelog.outputs.version != ''
+        run: |
+          curl -fsSL http://your-service/health || exit 1
 
       - name: Revert to Default Docker Context
         if: always()

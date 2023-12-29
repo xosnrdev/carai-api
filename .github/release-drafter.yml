@@ -1,5 +1,5 @@
-name-template: "Release v$NEXT_PATCH_VERSION 🚀"
-tag-template: "v$NEXT_PATCH_VERSION"
+name-template: "v$NEXT_PATCH_VERSION 🚀" # Simpler and more standard version naming
+tag-template: "v$NEXT_PATCH_VERSION" # Standard tag naming with 'v' prefix
 categories:
   - title: "🚀 Features"
     labels:
@@ -14,19 +14,19 @@ categories:
     labels:
       - "chore"
       - "maintenance"
-change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
-change-title-escapes: '\"<>`'
+change-template: "- $TITLE @$AUTHOR (#$NUMBER)" # Clear and concise change log entry
+change-title-escapes: '\"<>`' # Escape potentially problematic characters
 version-resolver:
   major:
     labels:
-      - "major"
+      - "major" # Any label that indicates a major change
   minor:
     labels:
-      - "minor"
+      - "minor" # Any label that indicates a minor change
   patch:
     labels:
-      - "patch"
-  default: patch
+      - "patch" # Default to patch for most changes
+  default: patch # Default version bump if no label found
 template: |
   ## What's Changed
   $CHANGES
@@ -39,3 +39,7 @@ template: |
 
   ## 🧰 Maintenance
   $MAINTENANCE
+
+  ## Contributors
+  Thanks to everyone who contributed to this release:
+  $CONTRIBUTORS
