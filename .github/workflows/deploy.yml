@@ -35,6 +35,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Run entry-point.sh script
+        run: |
+          chmod +x entry-point.sh
+          ./entry-point.sh
+
       - name: Build Docker Image
         run: |
           export AWS_ACCOUNT_ID=${{ env.AWS_ACCOUNT_ID }}
