@@ -10,6 +10,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "${PORT}:3000"
+    environment:
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      - NODE_OPTIONS=${NODE_OPTIONS}
     env_file:
       - variables.env
     restart: on-failure
