@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    image: "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
+    image: "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG || 'latest'}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
