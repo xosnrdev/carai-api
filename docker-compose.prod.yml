@@ -16,8 +16,6 @@ services:
       - NODE_ENV=${NODE_ENV}
       - PORT=${PORT}
       - NODE_OPTIONS=${NODE_OPTIONS}
-    env_file:
-      - variables.env
     restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:${PORT}/health || exit 1"]
