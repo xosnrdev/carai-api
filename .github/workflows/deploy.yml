@@ -92,7 +92,7 @@ jobs:
 
       - name: Define IMAGE_TAG
         if: steps.changelog.outputs.version != ''
-        run: echo "IMAGE_TAG=${{ steps.changelog.outputs.version }}" >> $GITHUB_ENV
+        run: echo "IMAGE_TAG=${{ steps.changelog.outputs.version || 'latest' }}" >> $GITHUB_ENV
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
