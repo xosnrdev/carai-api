@@ -102,8 +102,9 @@ jobs:
       - name: Set up Docker Context for ECS
         if: steps.changelog.outputs.version != ''
         run: |
-          docker context create ecs myecscontext --description "ECS Context"
-          docker context update myecscontext --docker "host=unix:///var/run/docker.sock"
+          docker context create \
+          --docker host=unix:///var/run/docker.sock \
+          myecscontext
 
           docker context use myecscontext
 
