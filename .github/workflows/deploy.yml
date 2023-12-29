@@ -35,6 +35,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+
       - name: Run entry-point.sh script
         run: |
           chmod +x entry-point.sh
@@ -46,12 +52,6 @@ jobs:
           export AWS_REGION=${{ env.AWS_REGION }}
           export ECR_REPOSITORY=${{ env.ECR_REPOSITORY }}
           docker compose -f docker-compose.prod.yml build
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
