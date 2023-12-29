@@ -89,15 +89,23 @@ jobs:
           body: ${{ steps.changelog.outputs.changelog }}
           skipIfReleaseExists: true
 
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Tag and Push Docker Image to ECR
         if: steps.changelog.outputs.version != ''
         run: |
           IMAGE_TAG=${{ steps.changelog.outputs.version }}
-          FULL_IMAGE_NAME="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
+          export AWS_ACCOUNT_ID=${{ env.AWS_ACCOUNT_ID }}
+          export AWS_REGION=${{ env.AWS_REGION }}
+          export ECR_REPOSITORY=${{ env.ECR_REPOSITORY }}
+          export IMAGE_TAG
 
-          sed -i "s|${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest|$FULL_IMAGE_NAME|g" docker-compose.prod.yml
+          # Update the image tag in the Docker Compose file
+          sed -i "s|${IMAGE_TAG}|$IMAGE_TAG|g" docker-compose.prod.yml
 
-          docker compose -f docker-compose.prod.yml push
+          # Push the image to Amazon ECR using Docker Compose
+          docker compose -f docker-compose.prod.yml push api
 
       - name: Set up Docker Context for ECS
         if: steps.changelog.outputs.version != ''

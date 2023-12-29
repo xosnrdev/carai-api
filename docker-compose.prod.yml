@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    image: 657214731516.dkr.ecr.us-west-2.amazonaws.com/carai-api:latest
+      image: "${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
