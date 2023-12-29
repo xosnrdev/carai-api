@@ -46,7 +46,7 @@ RUN chmod +x /entry-point.sh
 EXPOSE 3000
 
 # Define the entry point script
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/entry-point.sh"]
 
 # Define command to run your app
 CMD ["npm", "start"]

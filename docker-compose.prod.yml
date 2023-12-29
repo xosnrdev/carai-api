@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    image: 657214731516.dkr.ecr.us-west-2.amazonaws.com/carai-api:1.0.5
+    image: 657214731516.dkr.ecr.us-west-2.amazonaws.com/carai-api:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
