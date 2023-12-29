@@ -1,6 +1,6 @@
 {
   "name": "carai-api",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "A secure and scalable code execution API designed to safely run untrusted and arbitrary code snippets. Utilizes Dockerode for isolated execution environments via Docker containers, ensuring robust security and performance. Features include input validation, rate limiting, and comprehensive logging, catering to needs where code execution isolation and integrity are paramount.",
   "main": "dist/server.js",
   "scripts": {
