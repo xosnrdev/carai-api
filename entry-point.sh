@@ -47,4 +47,4 @@ fi
 
 # Execute the main process of the container
 log "Executing the main process."
-exec "$@"
+exec npm start
