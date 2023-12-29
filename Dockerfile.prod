@@ -39,8 +39,8 @@ RUN npm install -g npm@latest && \
 COPY --from=builder-stage /app/dist/src ./dist
 
 # Copy the entrypoint script and set permissions
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY entry-point.sh /entry-point.sh
+RUN chmod +x /entry-point.sh
 
 # Your app binds to port 3000 so you'll use the EXPOSE instruction to have it mapped by the docker daemon
 EXPOSE 3000
