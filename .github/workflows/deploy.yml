@@ -123,7 +123,7 @@ jobs:
       - name: Verify Deployment Health
         if: steps.changelog.outputs.version != ''
         run: |
-          curl -fsSL http://your-service/health || exit 1
+          curl -fsSL http://localhost:${{ env.PORT }}/health || exit 1
 
       - name: Revert to Default Docker Context
         if: always()
