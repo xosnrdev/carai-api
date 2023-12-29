@@ -5,11 +5,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-      image: "${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}"
+    image: "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - ${PORT}:3000
+      - "${PORT}:3000"
     environment:
       - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
       - RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
