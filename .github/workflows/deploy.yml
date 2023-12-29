@@ -102,13 +102,15 @@ jobs:
       - name: Set up Docker Context for ECS
         if: steps.changelog.outputs.version != ''
         run: |
-          docker context create ecs myecscontext --description "ECS Context" --docker "host=unix:///var/run/docker.sock"
+          docker context create ecs myecscontext --description "ECS Context"
+          docker context update myecscontext --docker "host=unix:///var/run/docker.sock"
+
           docker context use myecscontext
 
       - name: Deploy Updated Image to Amazon ECS using Docker Compose
         if: steps.changelog.outputs.version != ''
         run: |
-            docker compose -f docker-compose.prod.yml up
+          docker compose -f docker-compose.prod.yml up
 
       - name: Revert to Default Docker Context
         if: always()
